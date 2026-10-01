@@ -1,0 +1,22 @@
+# Local credentials and runtime state
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.sqlite3
+*.db
+
+# Frontend build and dependencies
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/tsconfig.tsbuildinfo
+frontend/next-env.d.ts
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
