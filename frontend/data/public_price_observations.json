@@ -1,5 +1,5 @@
 {
-  "observed_at": "2026-09-28T15:00:00Z",
+  "observed_at": "2026-10-01T19:41:58Z",
   "automatic_refresh": false,
   "disclaimer": "Снимок открытых страниц, а не live quote. Эти суммы не подходят для сравнения полной поездки семьи 2+3. Нельзя умножать цену на двоих на коэффициент и считать это семейным тарифом.",
   "observations": [
@@ -93,6 +93,42 @@
       "dates": "31 октября — 8 ноября 2026 · 8 ночей",
       "source_url": "https://level.travel/explore/Moscow-Russia/Egypt/october",
       "limitations": ["Не актуализировано у туроператора", "Состав семьи отличается", "Номер, питание и окончательные сборы не проверены", "Не доказано соответствие требованиям к пляжу"]
+    },
+    {
+      "id": "travelata-rehana-egypt-oct-2026",
+      "kind": "PACKAGE",
+      "country_code": "EG",
+      "observed_at": "2026-10-01T19:41:58Z",
+      "provider": "Travelata — открытая страница туров",
+      "access_status": "DEEPLINK",
+      "pricing_reality": "LIMITED_REAL",
+      "bookable": null,
+      "title": "Египет · Rehana Sharm Resort Aqua Park & Spa",
+      "amount": 105756,
+      "currency": "RUB",
+      "price_qualifier": "от",
+      "travellers": "2 взрослых по параметрам страницы; детские тарифы не показаны",
+      "dates": "вылет 14 октября 2026 · 7 дней",
+      "source_url": "https://travelata.ru/egypt/october",
+      "limitations": ["Публичная цена «от» за двоих, не за семью 2+3", "Длительность указана в днях, число ночей и даты возврата не подтверждены", "Цена может измениться при выборе номера и бронировании", "Не участвует в итоговом расчёте вашей поездки"]
+    },
+    {
+      "id": "1001tur-happy-life-egypt-oct-2026",
+      "kind": "PACKAGE",
+      "country_code": "EG",
+      "observed_at": "2026-10-01T19:41:58Z",
+      "provider": "1001 Тур — открытый каталог туров",
+      "access_status": "DEEPLINK",
+      "pricing_reality": "LIMITED_REAL",
+      "bookable": null,
+      "title": "Египет · Happy Life Village",
+      "amount": 88676,
+      "currency": "RUB",
+      "price_qualifier": "от",
+      "travellers": "Состав туристов в карточке цены не указан",
+      "dates": "вылет 15 октября 2026 · 13 ночей",
+      "source_url": "https://www.1001tur.ru/egypt/tury/month_october/",
+      "limitations": ["Публичная цена «от», состав гостей и детские тарифы не подтверждены", "В каталоге указаны перелёт, проживание и питание, но состав пакета требует проверки", "Цена и наличие могут измениться", "Не участвует в итоговом расчёте вашей поездки"]
     },
     {
       "id": "aviasales-mow-ist-oct-2026",
