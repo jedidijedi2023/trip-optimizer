@@ -45,7 +45,8 @@ export default function LiveOffers({offers,attempted,providers,message,busy,onSe
    <div className="source-settings-head"><div><span className="eyebrow">СТАТУС ИСТОЧНИКОВ</span><h2 id="live-connection-title">Что подключено прямо сейчас</h2></div></div>
    <div className="source-grid">{relevant.map(p=><article key={p.provider}>
     <div style={{display:'flex',alignItems:'center',gap:8}}>{p.connected?<CheckCircle2 size={18}/>:<Circle size={18}/>}<h3 style={{margin:0}}>{p.provider}</h3></div>
-    <p>{p.connected?'Подключено':'Требуется регистрация'}{!p.connected&&p.env_hint!=='—'&&<> · переменные: <code>{p.env_hint}</code></>}</p>
+    <p>{p.connected?'Подключено':p.provider==='Travelpayouts / Aviasales Data API'?'Токен не настроен на сервере':'Доступ не настроен на сервере'}{!p.connected&&p.env_hint!=='—'&&<> · переменные: <code>{p.env_hint}</code></>}</p>
+    {!p.connected&&p.provider==='Travelpayouts / Aviasales Data API'&&<p className="hint">Добавьте собственный токен в Render → backend-сервис → Environment как <code>TRAVELPAYOUTS_TOKEN</code>. Не размещайте его в публичном GitHub или переменных <code>NEXT_PUBLIC_*</code>.</p>}
     <p className="hint">{p.integration_note}</p>
     {p.source_url.startsWith('https://')&&<a href={p.source_url} target="_blank" rel="noreferrer">Документация поставщика <ExternalLink size={14}/></a>}
    </article>)}</div>
