@@ -22,6 +22,17 @@ class APITests(unittest.TestCase):
         self.assertEqual(r.status_code,200)
         groups=[x['group'] for x in r.json()['orchestration']['enabled_groups']]
         self.assertEqual(groups,['WHOLESALERS_B2B'])
+    def test_all_sources_off_is_rejected(self):
+        r=self.client.post('/api/search',json={'source_settings':{'search_tour_operators':False,'search_wholesalers':False,'search_retail_diy':False}})
+        self.assertEqual(r.status_code,422)
+        self.assertIn('Включите хотя бы один источник',r.json()['detail'])
+    def test_foreign_without_positioning_remains_in_plan(self):
+        r=self.client.post('/api/search',json={'source_settings':{'search_russian_operators':False,'allow_foreign_package_positioning':False,'search_wholesalers':False,'search_retail_diy':False}})
+        self.assertEqual(r.status_code,200)
+        plan=r.json()['orchestration']
+        foreign=next(x for x in plan['enabled_groups'] if x['group']=='FOREIGN_TOUR_OPERATORS')
+        self.assertEqual(foreign['components'],['package'])
+        self.assertEqual(plan['gateway_candidates'],[])
     def test_foreign_gateway_plan_is_visa_fail_closed(self):
         r=self.client.post('/api/search',json={'filters':{'earliest':'2026-09-20','latest':'2026-11-30','schengen':False}})
         plan=r.json()['orchestration']
@@ -44,6 +55,10 @@ class APITests(unittest.TestCase):
             self.assertIn('access_status',p);self.assertIn('pricing_reality',p);self.assertIn('bookable',p)
     def test_public_observations_not_verified_family_quotes(self):
         data=self.client.get('/api/public-prices').json()
-        self.assertGreater(len(data['observations']),0)
+        self.assertGreaterEqual(len(data['observations']),6)
+        self.assertFalse(data['automatic_refresh'])
+        self.assertTrue({'Travelata', '1001 Тур'}.issubset({o['provider'].split(' — ')[0] for o in data['observations']}))
         for o in data['observations']:
-            self.assertEqual(o['pricing_reality'],'LIMITED_REAL');self.assertIsNone(o['bookable'])
+            self.assertGreater(o['amount'],0)
+            self.assertTrue(o['source_url'].startswith('https://'))
+            self.assertIn(o['pricing_reality'],('LIMITED_REAL','UNKNOWN'));self.assertIsNone(o['bookable'])

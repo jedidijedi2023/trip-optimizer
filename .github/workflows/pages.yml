@@ -22,7 +22,7 @@ jobs:
           version: 11.19.0
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
       - uses: actions/configure-pages@v5
@@ -32,12 +32,24 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
         working-directory: frontend
+      - name: Lint
+        run: pnpm lint
+        working-directory: frontend
+      - name: Frontend unit tests
+        run: pnpm test
+        working-directory: frontend
       - name: Build static site
         run: pnpm build
         working-directory: frontend
         env:
           GITHUB_PAGES: 'true'
           NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+      - name: Install Chromium for browser smoke tests
+        run: pnpm exec playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Browser smoke tests
+        run: pnpm test:e2e
+        working-directory: frontend
       - name: Preserve Next.js assets
         run: touch frontend/out/.nojekyll
       - uses: actions/upload-pages-artifact@v4

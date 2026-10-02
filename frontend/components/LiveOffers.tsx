@@ -5,9 +5,10 @@ import {countryMatches,type Filters} from '@/lib/search';
 
 type Money={original_amount:string;original_currency:string};
 type Provenance={provider:string;access_status:string;pricing_reality:string;bookable:boolean|null;source_url:string};
-type LiveOffer={id:string;kind:string;provenance:Provenance;price:Money;hotel?:{name:string;country:string}|null;room?:string|null;meal?:string|null;booking_url?:string|null;search_url?:string|null;origin?:string|null;destination?:string|null;country_code?:string|null;departure_date?:string|null;return_date?:string|null;passenger_price_scope?:string|null;raw_reference?:string|null;cancellation?:unknown;payment_terms?:string|null;mandatory_costs_complete?:boolean};
-type Attempted={provider:string;connected:boolean;used:boolean;count:number;note:string|null};
-type ProviderRow={provider:string;access_status:string;connected:boolean;env_hint:string;integration_note:string;source_url:string};
+export type LiveOffer={id:string;kind:string;provenance:Provenance;price:Money;hotel?:{name:string;country:string}|null;room?:string|null;meal?:string|null;booking_url?:string|null;search_url?:string|null;origin?:string|null;destination?:string|null;country_code?:string|null;departure_date?:string|null;return_date?:string|null;passenger_price_scope?:string|null;raw_reference?:string|null;cancellation?:unknown;payment_terms?:string|null;mandatory_costs_complete?:boolean};
+export type Attempted={provider:string;connected:boolean;used:boolean;count:number;note:string|null};
+export type ProviderRow={provider:string;access_status:string;connected:boolean;env_hint:string;integration_note:string;source_url:string};
+export type LiveSearchResponse={message:string;connected?:string[];offers?:LiveOffer[];attempted?:Attempted[];providers?:ProviderRow[]};
 
 export default function LiveOffers({offers,attempted,providers,message,busy,onSearch,filters,apiAvailable=true}:{
  offers:LiveOffer[];attempted:Attempted[];providers:ProviderRow[];message:string|null;busy:boolean;onSearch:()=>void;filters:Filters;apiAvailable?:boolean;

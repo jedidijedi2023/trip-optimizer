@@ -29,7 +29,16 @@ async def lifespan(app):
     yield
 
 app=FastAPI(title='Global Travel Optimizer',version='0.1.0',lifespan=lifespan,description='DEMO-FIRST, read/search only. No booking or payment endpoints.')
-app.add_middleware(CORSMiddleware,allow_origins=['http://127.0.0.1:3000','http://localhost:3000']+[origin.strip() for origin in os.getenv('FRONTEND_ORIGINS','').split(',') if origin.strip()],allow_methods=['GET','POST'],allow_headers=['Content-Type'])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['http://127.0.0.1:3000', 'http://localhost:3000'] + [
+        origin.strip().rstrip('/')
+        for origin in os.getenv('FRONTEND_ORIGINS', '').split(',')
+        if origin.strip()
+    ],
+    allow_methods=['GET', 'POST'],
+    allow_headers=['Content-Type'],
+)
 
 class SearchRequest(BaseModel):
     model_config=ConfigDict(extra='forbid')
@@ -46,8 +55,8 @@ def source_orchestration(request:SearchRequest):
     if s.search_wholesalers:enabled.append({'group':'WHOLESALERS_B2B','providers':['HBX','RateHawk','WebBeds','TBO','DidaTravel','Travelgate HotelX','Expedia Rapid'],'components':['flight','hotel','transfer','ferry','bus','charter/block seats']})
     if s.search_retail_diy:enabled.append({'group':'RETAIL_DIY','providers':['Duffel','public/deeplink retail sources'],'components':['flight','hotel','transfer']})
     candidates=[]
-    foreign_requested=s.search_tour_operators and s.search_foreign_operators and s.allow_foreign_package_positioning
-    if foreign_requested:
+    foreign_requested=s.search_tour_operators and s.search_foreign_operators
+    if foreign_requested and s.allow_foreign_package_positioning:
         try:arrival=date.fromisoformat(str(f.get('earliest',date.today().isoformat())))
         except ValueError:arrival=date.today()
         try:departure=date.fromisoformat(str(f.get('latest',arrival.isoformat())))
@@ -57,7 +66,8 @@ def source_orchestration(request:SearchRequest):
         for country,airport in GATEWAY_PRIORITY:
             assessment=engine.assess(profile,[Visit(country,arrival,departure,role='gateway',airport=airport,passport_control=True,separate_tickets=True,overnight=s.positioning_overnight_allowed)])
             candidates.append({'country':country,'airport':airport,'eligible':assessment.allowed,'visa_status':assessment.status.value,'reasons':assessment.reasons})
-        enabled.append({'group':'FOREIGN_TOUR_OPERATORS','providers':['foreign package providers'],'components':['positioning flight','gateway stay','package'],'status':'READY' if any(x['eligible'] for x in candidates) else 'VISA_EVIDENCE_REQUIRED'})
+    if foreign_requested:
+        enabled.append({'group':'FOREIGN_TOUR_OPERATORS','providers':['foreign package providers'],'components':(['positioning flight','gateway stay'] if s.allow_foreign_package_positioning else [])+['package'],'status':'PROVIDER_ACCESS_REQUIRED' if not candidates or any(x['eligible'] for x in candidates) else 'VISA_EVIDENCE_REQUIRED'})
     return {'parallel':True,'enabled_groups':enabled,'gateway_priority':[c for c,_ in GATEWAY_PRIORITY],'gateway_candidates':candidates,'ranking':'total_real_cost','sandbox_mock_economic_comparison':False}
 
 @app.get('/api/health')
@@ -87,11 +97,11 @@ async def validation_providers():
 
 @app.post('/api/search')
 async def real_search(request:SearchRequest):
-    # Only genuinely connected sources are queried here (see live_search.py):
-    # an official public demo needing no personal key, plus any sandbox whose
-    # own credentials the operator has put in backend/.env. This route never
-    # fills results with mock/fixture offers, and pricing stays DEMO/SANDBOX-
-    # labeled (never REAL), so it can never feed the savings calculation.
+    # Only connected sources are queried; cached flight fares and sandbox
+    # offers remain separate components and never become a family trip total.
+    s=request.source_settings
+    if not (s.search_wholesalers or s.search_retail_diy or s.search_tour_operators and (s.search_russian_operators or s.search_foreign_operators)):
+        raise HTTPException(422,'Включите хотя бы один источник поиска')
     f=request.filters
     for key in ('earliest','latest'):
         if key in f:
@@ -101,9 +111,15 @@ async def real_search(request:SearchRequest):
     offers=live['offers'];attempted=live['attempted']
     connected_used=[a['provider'] for a in attempted if a.get('used') and a.get('count',0)>0]
     if offers:
-        message=f'Показаны {len(offers)} предложений от подключённых demo/sandbox источников ({", ".join(connected_used)}). Это не production-цены: доступность, визовые условия и итоговая стоимость для семьи не подтверждены.'
+        message=f'Найдено {len(offers)} отдельных предложений ({", ".join(connected_used)}). Кэшированные авиабилеты, demo и sandbox не подтверждают цену для всей семьи. Полная стоимость не рассчитана.'
     else:
-        message='Подтверждённых предложений нет. Проверьте статус источников ниже — часть из них заработает сразу после того, как вы добавите собственные ключи в backend/.env.'
+        tp = next((a for a in attempted if a['provider'] == 'Travelpayouts / Aviasales Data API'), None)
+        if tp and tp.get('used'):
+            message='Предложений для этого запроса нет. Aviasales Data API подключён, но в полученной части кэша нет подходящих билетов. Попробуйте другое окно дат или направление.'
+        elif tp and not tp.get('connected'):
+            message='Предложений для этого запроса нет. Travelpayouts не настроен на сервере: нужен собственный TRAVELPAYOUTS_TOKEN в Render Environment или Secret Files.'
+        else:
+            message='Предложений для этого запроса нет. Проверьте включённые источники и параметры поиска ниже.'
     result={'search_id':str(uuid.uuid4()),'mode':'LIVE','offers':[o.model_dump(mode='json') for o in offers],'count':len(offers),
         'connected':connected_used,'attempted':attempted,
         'message':message,

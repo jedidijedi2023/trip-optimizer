@@ -137,6 +137,13 @@ class NormalizedOffer(BaseModel):
     mandatory_costs_complete: bool = False
     taxes: Money | None = None
     raw_reference: str | None = None
+    search_url: str | None = None
+    origin: str | None = None
+    destination: str | None = None
+    departure_date: date | None = None
+    return_date: date | None = None
+    passenger_price_scope: str | None = None
+    country_code: str | None = None
 
 
 class TravellerGroup(BaseModel):

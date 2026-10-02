@@ -6,6 +6,7 @@ provider, never whether the provider itself is reachable in general.
 """
 import os
 from backend.models.domain import Access,Reality
+from backend.providers.travelpayouts import travelpayouts_token
 
 def _bool(*names):
     return all(os.getenv(n) for n in names)
@@ -15,6 +16,8 @@ def provider_registry():
       # name, access, reality, bookable, note, docs_url, connected(), env_hint, wired_into_main_search
       ('Tourvisor',Access.REGISTRATION_REQUIRED,Reality.UNKNOWN,None,'Trial: 300 requests/day, own JWT required','https://api.tourvisor.ru/search/docs',
         _bool('TOURVISOR_TOKEN') and os.getenv('TOURVISOR_ACCESS_MODE')=='trial','TOURVISOR_TOKEN, TOURVISOR_ACCESS_MODE=trial','Проверьте во вкладке «API тест»; в общий поиск пока не включён (нужны справочники departureId/countryId)'),
+      ('Travelata partner API',Access.REGISTRATION_REQUIRED,Reality.UNKNOWN,None,'Official cheapestTours API requires partner-specific Basic Auth; Aviasales Data API token is unrelated','https://support.travelpayouts.com/hc/ru/articles/360022674591-API-%D0%BE%D1%82-Travelata',
+        False,'Индивидуальный партнёрский доступ Travelata','Опубликованные цены Travelata видны в каталоге открытых страниц; точные тарифы семьи через API пока недоступны'),
       ('Hotelbeds / HBX',Access.REGISTRATION_REQUIRED,Reality.SYNTHETIC,False,'Evaluation at api.test.hotelbeds.com; own key/secret required','https://developer.hotelbeds.com/documentation/getting-started/',
         _bool('HOTELBEDS_API_KEY','HOTELBEDS_SECRET'),'HOTELBEDS_API_KEY, HOTELBEDS_SECRET','Проверьте во вкладке «API тест» (нужны конкретные коды отелей); в общий поиск пока не включён'),
       ('DidaTravel rates',Access.REGISTRATION_REQUIRED,Reality.UNKNOWN,None,'Shared PriceSearch test account retired; dedicated sandbox account required','https://apidoc.didatravel.com/booking-api/price-search.html',
@@ -53,6 +56,12 @@ def provider_registry():
         True,'—','Открытые данные, показаны во вкладке «Открытые источники»'),
       ('Aviasales public prices',Access.DEEPLINK,Reality.LIMITED_REAL,None,'Public route-page cached prices; one-way, passenger/baggage conditions unconfirmed','https://www.aviasales.ru/routes/mow/ist',
         True,'—','Открытые данные, показаны во вкладке «Открытые источники»'),
+      ('Travelpayouts / Aviasales Data API',Access.LIVE,Reality.LIMITED_REAL,False,'Official partner API, cached last-48h prices — real feed, not a live fare confirmation','https://support.travelpayouts.com/hc/en-us/articles/203956163',
+        bool(travelpayouts_token()),'TRAVELPAYOUTS_TOKEN','Уже включён в «Реальный поиск»; принимает переменную окружения или Render Secret File с именем TRAVELPAYOUTS_TOKEN'),
+      ('Travelpayouts / Hotellook Hotel Search',Access.REGISTRATION_REQUIRED,Reality.UNKNOWN,None,'Live hotel prices require an individual approval request (project description + mockups), not instant self-serve','https://support.travelpayouts.com/hc/en-us/articles/203956133-Hotel-search-API',
+        False,'—','Нужен отдельный запрос в поддержку Travelpayouts с описанием проекта; адаптер ещё не написан'),
+      ('Travelpayouts / Kiwitaxi transfers',Access.REGISTRATION_REQUIRED,Reality.UNKNOWN,None,'Confirmed affiliate program, but a deep-link/widget, not a documented public JSON price endpoint','https://support.travelpayouts.com/hc/en-us/articles/20384016664594',
+        False,'—','Только deep-link/виджет; нет подтверждённого публичного price-эндпоинта, поэтому мы не подключаем сюда «живые» цифры'),
     ]
     return [{'provider':n,'access_status':a,'pricing_reality':p,'bookable':b,'note':note,'source_url':url,
              'connected':connected,'env_hint':env_hint,'integration_note':integration_note}

@@ -8,6 +8,7 @@ export type SearchSourceSettings={
  positioning_overnight_allowed:boolean;positioning_self_transfer_allowed:boolean;positioning_min_buffer_hours:number;
 };
 export const defaultSearchSourceSettings:SearchSourceSettings={search_tour_operators:true,search_russian_operators:true,search_foreign_operators:true,allow_foreign_package_positioning:true,search_wholesalers:true,search_retail_diy:true,positioning_max_price:null,positioning_max_duration_hours:null,positioning_overnight_allowed:true,positioning_self_transfer_allowed:true,positioning_min_buffer_hours:12};
+export function sourcesEnabled(s:SearchSourceSettings){return s.search_wholesalers||s.search_retail_diy||s.search_tour_operators&&(s.search_russian_operators||s.search_foreign_operators);}
 const n=(key:string,label:string,min=0,max=10000000):Field=>({key,label,type:'number',min,max});
 const c=(key:string,label:string):Field=>({key,label,type:'check'});
 const s=(key:string,label:string,options:string[]):Field=>({key,label,type:'select',options});
@@ -56,12 +57,19 @@ export const kindLabels:Record<string,string>={russian:'Российский п�
 export const money=(v:number)=>new Intl.NumberFormat('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:0}).format(v);
 export const addDays=(d:string,n:number)=>new Date(Date.parse(d+'T12:00:00Z')+n*86400000).toISOString().slice(0,10);
 export const shortDate=(d:string)=>new Date(d+'T12:00:00Z').toLocaleDateString('ru-RU',{day:'numeric',month:'short'});
-export function validate(f:Filters,p:Party):string[]{
+export function validIsoDate(value:unknown):value is string{
+ if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+ const time=Date.parse(value+'T12:00:00Z');
+ return Number.isFinite(time)&&new Date(time).toISOString().slice(0,10)===value;
+}
+export function validate(f:Filters,p:Party,sources:SearchSourceSettings=defaultSearchSourceSettings):string[]{
  const errors:string[]=[];
  for(const section of sections)for(const field of section.fields)if(field.type==='number'&&(!Number.isFinite(Number(f[field.key]))||Number(f[field.key])<field.min!||Number(f[field.key])>field.max!))errors.push(`Проверьте поле «${field.label}»`);
- if(!/^\d{4}-\d{2}-\d{2}$/.test(String(f.earliest))||!/^\d{4}-\d{2}-\d{2}$/.test(String(f.latest))||!/^\d{4}-\d{2}-\d{2}$/.test(String(f.latestDeparture)))errors.push('Укажите даты поездки');
- if(f.earliest>f.latest||f.earliest>f.latestDeparture||f.latestDeparture>f.latest)errors.push('Проверьте порядок дат');
+ if(!validIsoDate(f.earliest)||!validIsoDate(f.latest)||!validIsoDate(f.latestDeparture))errors.push('Укажите корректные даты поездки');
+ else if(f.earliest>f.latest||f.earliest>f.latestDeparture||f.latestDeparture>f.latest)errors.push('Проверьте порядок дат');
+ else if(f.latestDeparture<addDays(new Date().toLocaleDateString('sv-SE'),1))errors.push('В окне нет будущих дат вылета');
  if(f.destinationMode==='Выбранные страны'&&selectedCountryCodes(f).length===0)errors.push('Выберите хотя бы одну страну в блоке «Куда»');
+ if(!sourcesEnabled(sources))errors.push('Включите хотя бы один источник поиска');
  if(Number(f.minNights)>Number(f.maxNights))errors.push('Минимум ночей не может превышать максимум');
  if(Number(f.dayMin)>Number(f.dayMax))errors.push('Минимальная температура выше максимальной');
  if((Date.parse(String(f.latest))-Date.parse(String(f.earliest)))/86400000>180)errors.push('Окно локального поиска ограничено 180 днями');
@@ -71,7 +79,7 @@ export function validate(f:Filters,p:Party):string[]{
  return errors;
 }
 export function searchMock(f:Filters,p:Party,sources:SearchSourceSettings=defaultSearchSourceSettings):{offers:Offer[];scenarios:number;excluded:number;errors:string[]}{
- const errors=validate(f,p);if(errors.length)return {offers:[],scenarios:0,excluded:0,errors};
+ const errors=validate(f,p,sources);if(errors.length)return {offers:[],scenarios:0,excluded:0,errors};
  const result:Offer[]=[];let scenarios=0,excluded=0;
  const people=p.adults+p.children.length;const groupDefs=p.split?p.groups:[{name:'Вся семья',adults:p.adults,children:p.children.map((_,i)=>i),minNights:Number(f.minNights),maxNights:Number(f.maxNights)}];
  const combinations:number[][]=[];const combine=(i:number,ns:number[])=>{if(i===groupDefs.length){combinations.push(ns);return;}for(let n=groupDefs[i].minNights;n<=groupDefs[i].maxNights;n++)combine(i+1,[...ns,n]);};combine(0,[]);
@@ -98,9 +106,9 @@ export function searchMock(f:Filters,p:Party,sources:SearchSourceSettings=defaul
   if(weather<Number(f.weather)||sea<Number(f.sea)||air<Number(f.dayMin)||air>Number(f.dayMax)||rain>Number(f.rain)||rainy>Number(f.rainyDays)||f.monsoon&&di===12||f.typhoon&&di===13)continue;
   for(let ki=0;ki<kinds.length;ki++){
    const kind=kinds[ki];
-   const enabled=kind==='russian'?sources.search_tour_operators&&sources.search_russian_operators:kind==='foreign'||kind==='gatewayPackage'?sources.search_tour_operators&&sources.search_foreign_operators&&sources.allow_foreign_package_positioning:kind==='wholesale'||kind==='charter'?sources.search_wholesalers:sources.search_retail_diy;
+   const enabled=kind==='russian'?sources.search_tour_operators&&sources.search_russian_operators:kind==='foreign'?sources.search_tour_operators&&sources.search_foreign_operators:kind==='gatewayPackage'?sources.search_tour_operators&&sources.search_foreign_operators&&sources.allow_foreign_package_positioning:kind==='wholesale'||kind==='charter'?sources.search_wholesalers:sources.search_retail_diy;
    if(!enabled)continue;
-   const hasGateway=kind==='gatewayPackage'||kind==='foreign';
+   const hasGateway=kind==='gatewayPackage';
    if(hasGateway&&!f.gateway)continue;
    const possibleHubs=hasGateway?hubs:[['','','']];
    for(const [hubCode,hub,hubName]of possibleHubs){
@@ -111,7 +119,8 @@ export function searchMock(f:Filters,p:Party,sources:SearchSourceSettings=defaul
     const positionDuration=hasGateway?5:0;
     if(f.direct&&stops>0||stops>Number(f.stops)||Number(f.baggage)>23||Number(f.carryOn)>8||flightHours>Number(f.flightHours)||hasGateway&&(!sources.positioning_self_transfer_allowed||!sources.positioning_overnight_allowed||actualBuffer>Number(f.layover)||actualBuffer<recommended||(sources.positioning_max_price!==null&&position>sources.positioning_max_price)||(sources.positioning_max_duration_hours!==null&&positionDuration>sources.positioning_max_duration_hours)))continue;
     let best:Offer|undefined;
-    const firstDeparture=String(f.earliest)>new Date().toLocaleDateString('sv-SE')?String(f.earliest):new Date().toLocaleDateString('sv-SE');
+    const tomorrow=addDays(new Date().toLocaleDateString('sv-SE'),1);
+    const firstDeparture=String(f.earliest)>tomorrow?String(f.earliest):tomorrow;
     for(let departure=firstDeparture;departure<=String(f.latestDeparture);departure=addDays(departure,1))for(const ns of combinations){
      scenarios++;const returns=ns.map(n=>addDays(departure,n));if(returns.some(r=>r>String(f.latest)))continue;
      if(f.passportExpiry&&String(f.passportExpiry)<addDays([...returns].sort().at(-1)!,180))continue;
@@ -136,8 +145,8 @@ export function searchMock(f:Filters,p:Party,sources:SearchSourceSettings=defaul
      const preference=f.countryMeals&&((['TR','EG'].includes(code)&&meal==='AI')||(['TH','VN','LK','MY','PH','ID'].includes(code)&&meal==='BB'))?2:0;
      const score=Math.min(100,Math.round(metrics.reduce((s,v,i)=>s+v*weights[i],0)/weights.reduce((a,b)=>a+b,0)+preference));
      const route=[airport,...(hasGateway?[hub]:[]),resort,...(di===10||di===11?['Автобус','Паром']:[])];
-      const operatorName=kind==='russian'?'Российский туроператор (демо)':hasGateway?`${hubName} Holidays (демо)`:kind==='wholesale'?'B2B wholesale (демо)':kind==='charter'?'Charter provider (демо)':'Retail suppliers (демо)';
-      const operatorCountry=kind==='russian'?'Россия':hasGateway?hubName:'';
+      const operatorName=kind==='russian'?'Российский туроператор (демо)':hasGateway?`${hubName} Holidays (демо)`:kind==='foreign'?'Иностранный туроператор (демо)':kind==='wholesale'?'B2B wholesale (демо)':kind==='charter'?'Charter provider (демо)':'Retail suppliers (демо)';
+      const operatorCountry=kind==='russian'?'Россия':hasGateway?hubName:kind==='foreign'?'Зарубежный оператор (демо)':'';
       const offer:Offer={searchParty:JSON.parse(JSON.stringify(p)),searchRooms:Number(f.rooms),id:`${code}-${kind}-${hub||'direct'}-${departure}-${ns.join('-')}`,country,code,resort,hotel:`${resort} · семейный отель ${stars}★`,kind,meal,departure,returns,nights:ns,people,price,costs,weather,beach,water,family:di%3===0?96:87,score,sea,air,stars,rating,gateway:hasGateway?`${hubName} · ${hub}`:'',gatewayCountry:hubCode,route,risk:hasGateway?48:stops?24:12,bookingRisk:hasGateway?76:60,buffer:actualBuffer,visa,source:'Демонстрационный поставщик',sourceUrl:'',savings:null,comparisonKey:`${code}-${departure}-${ns.join('-')}-${meal}-${f.rooms}-${JSON.stringify(groupDefs)}`,explanation:hasGateway?'Полная модель: зарубежный пакет, positioning flights, gateway hotel, багаж, трансферы, визовые и обязательные расходы.':'Модель полной стоимости для всей семьи. Это пример расчёта, не предложение продавца.',demo:true,available:false,access_status:'MOCK',pricing_reality:'SYNTHETIC',bookable:false,flightHours,groupLabels:groupDefs.map(g=>`${g.name}: ${g.adults} взр. + ${g.children.length} дет.`),reasons:['Все цены, отели, погодные и пляжные оценки — синтетические','Виза и доступность не проверены; бронирование отсутствует'],operatorName,operatorCountry,startAirport:hasGateway?hub:'',positioningCost:position,gatewayHotelCost:gatewayHotel,overnightNeeded:hasGateway,selfTransfer:hasGateway,visaDecision:visa==='VISA_REQUIRED'?'REQUIRED':'CHECK',packagePrice,additionalCosts,totalRealCost:price};
      if(!best||offer.price<best.price)best=offer;
     }
@@ -145,6 +154,5 @@ export function searchMock(f:Filters,p:Party,sources:SearchSourceSettings=defaul
    }
   }
  }
- for(const o of result){const baseline=result.find(b=>b.kind==='russian'&&b.comparisonKey===o.comparisonKey);if(baseline&&o.kind!=='russian')o.savings=baseline.price-o.price;}
  return {offers:result.sort((a,b)=>b.score-a.score||a.price-b.price),scenarios,excluded,errors};
 }

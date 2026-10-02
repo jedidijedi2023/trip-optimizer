@@ -22,6 +22,7 @@ ALLOWED={
  ('POST','https://api-sandbox.ratehawk.com/api/b2b/v3/search/serp/region/'),
  ('GET','https://api.open-meteo.com/v1/forecast'),
  ('GET','https://www.cbr.ru/scripts/XML_daily.asp'),
+ ('GET','https://api.travelpayouts.com/aviasales/v3/prices_for_dates'),
 }
 
 

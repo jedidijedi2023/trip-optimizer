@@ -15,3 +15,7 @@ To enable the server features, host `backend.api.main:app` separately over HTTPS
 From `frontend`, run `pnpm install --frozen-lockfile` and `pnpm dev`. From the repository root, install `backend/requirements.txt` into a Python virtual environment, then run `python -m uvicorn backend.api.main:app --host 127.0.0.1 --port 8000`. The frontend defaults to the local API at port 8000 outside the GitHub Pages build.
 
 To test the Pages build locally, set `GITHUB_PAGES=true` and `GITHUB_REPOSITORY=username/repository`, then run `pnpm build` in `frontend`. The static output is `frontend/out`.
+
+## Quality checks
+
+The release workflow runs `pnpm lint`, `pnpm typecheck`, `pnpm test`, a Pages production build, and `pnpm test:e2e` (Chromium). The browser tests serve the exported build under `/trip-optimizer/` and cover reload, source filters, country selection, in-flight search changes, split-family controls, details, and mobile widths. Install the official Playwright browser once with `pnpm exec playwright install chromium`. Run backend tests with `python -m unittest discover -s tests`. Findings and provider-access limits are recorded in [`docs/qa_report.md`](docs/qa_report.md).
