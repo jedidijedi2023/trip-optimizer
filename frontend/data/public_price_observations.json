@@ -1,5 +1,5 @@
 {
-  "observed_at": "2026-10-01T19:41:58Z",
+  "observed_at": "2026-10-02T04:18:38Z",
   "automatic_refresh": false,
   "disclaimer": "Снимок открытых страниц, а не live quote. Эти суммы не подходят для сравнения полной поездки семьи 2+3. Нельзя умножать цену на двоих на коэффициент и считать это семейным тарифом.",
   "observations": [
@@ -116,17 +116,17 @@
       "id": "1001tur-happy-life-egypt-oct-2026",
       "kind": "PACKAGE",
       "country_code": "EG",
-      "observed_at": "2026-10-01T19:41:58Z",
+      "observed_at": "2026-10-02T04:18:38Z",
       "provider": "1001 Тур — открытый каталог туров",
       "access_status": "DEEPLINK",
       "pricing_reality": "LIMITED_REAL",
       "bookable": null,
       "title": "Египет · Happy Life Village",
-      "amount": 88676,
+      "amount": 91954,
       "currency": "RUB",
       "price_qualifier": "от",
       "travellers": "Состав туристов в карточке цены не указан",
-      "dates": "вылет 15 октября 2026 · 13 ночей",
+      "dates": "вылет 16 октября 2026 · 14 ночей",
       "source_url": "https://www.1001tur.ru/egypt/tury/month_october/",
       "limitations": ["Публичная цена «от», состав гостей и детские тарифы не подтверждены", "В каталоге указаны перелёт, проживание и питание, но состав пакета требует проверки", "Цена и наличие могут измениться", "Не участвует в итоговом расчёте вашей поездки"]
     },
