@@ -64,7 +64,7 @@ export default function Home(){
    const lastPossible=addDays(String(f.latest),-Number(f.minNights));
    const latestDeparture=String(f.latestDeparture)<lastPossible?String(f.latestDeparture):lastPossible;
    if(earliest>latestDeparture){setLive({message:'В выбранном окне уже нет будущей даты вылета с указанным количеством ночей. Измените даты поездки.'});setBusy(false);document.getElementById('results')?.scrollIntoView({behavior:'smooth',block:'start'});return;}
-   try{const r=await fetch(api+'/api/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filters:{...f,earliest,latestDeparture},party,source_settings:sourceSettings}),signal:AbortSignal.timeout(20000)});if(!r.ok)throw new Error(`HTTP ${r.status}`);setLive(await r.json())}
+   try{const r=await fetch(api+'/api/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filters:{...f,earliest,latestDeparture},party,source_settings:sourceSettings}),signal:AbortSignal.timeout(45000)});if(!r.ok)throw new Error(`HTTP ${r.status}`);setLive(await r.json())}
    catch(e){setLive({message:`Сервер поиска недоступен: ${String(e)}. Цены не подставлены.`})}
   }else await new Promise(r=>setTimeout(r,300));
   setBusy(false);document.getElementById('results')?.scrollIntoView({behavior:'smooth',block:'start'});
@@ -100,7 +100,6 @@ export default function Home(){
   {showCompare&&<Modal title="Сравнение полной стоимости" close={()=>setShowCompare(false)}><div className="modal-body"><p className="hint">Суммы источников и учебная модель показаны отдельными строками. Синтетическая цена не участвует в выводах об экономии; реальные неполные суммы тоже нельзя сравнивать как полную стоимость.</p><div className="table-scroll"><table><thead><tr><th>Параметр</th>{compare.map(o=><th key={o.id}>{o.resort}<small>{kindLabels[o.kind]}</small></th>)}</tr></thead><tbody>{[['Найденные составляющие',(o:Offer)=>priceText(o)],['Полнота стоимости',(o:Offer)=>priceFor(o).complete?'Все строки заполнены':'Не определена'],['Учебная модель · SYNTHETIC',(o:Offer)=>money(o.price)],['Даты',(o:Offer)=>`${shortDate(calculationFor(o)?.departure||o.departure)} — ${(calculationFor(o)?.returns||o.returns).map(shortDate).join(' / ')}`],['Ночей',(o:Offer)=>calculationFor(o)?calculationFor(o)!.returns.map(back=>String(Math.round((Date.parse(back)-Date.parse(calculationFor(o)!.departure))/86400000))).join(' / '):o.nights.join(' / ')],['Питание',(o:Offer)=>o.meal],['Gateway',(o:Offer)=>o.gateway||'Нет'],['Погода',(o:Offer)=>o.weather+'/100'],['Вода',(o:Offer)=>o.water+'/5'],['Пересадочный риск',(o:Offer)=>o.risk+'/100'],['Доступность',()=> 'Не подтверждена']].map(([label,fn])=><tr key={String(label)}><th>{String(label)}</th>{compare.map(o=><td key={o.id}>{(fn as (o:Offer)=>string)(o)}</td>)}</tr>)}</tbody></table></div></div></Modal>}
  </>;
 }
-
 
 
 
